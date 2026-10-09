@@ -1,0 +1,129 @@
+name: Release
+
+# Pushing a version tag (e.g. v1.0.0) builds the Windows exe and attaches it to a GitHub Release.
+# Running the workflow manually builds and smoke-tests the exe without publishing a release.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Determine version
+        id: version
+        run: |
+          if ($env:GITHUB_REF_TYPE -eq 'tag') { $v = $env:GITHUB_REF_NAME -replace '^v', '' } else { $v = '0.0.0-dev' }
+          "value=$v" >> $env:GITHUB_OUTPUT
+          Write-Host "Version: $v"
+
+      - name: Test
+        run: dotnet test -c Release
+
+      # The native whisper libraries need the Visual C++ runtime. Bundle it so the exe also works on PCs
+      # without the VC++ Redistributable (the app loads these copies only when the system has none).
+      - name: Bundle Visual C++ runtime
+        run: |
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath
+          $crt = Get-ChildItem "$vs\VC\Redist\MSVC\*\x64\Microsoft.VC14*.CRT" -Directory -ErrorAction SilentlyContinue |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $crt) {
+            Write-Warning "Visual C++ runtime not found on the runner; the exe will rely on the system copy."
+            exit 0
+          }
+          $target = "src/VideoTranscriber/vcredist"
+          New-Item -ItemType Directory -Force -Path $target | Out-Null
+          foreach ($dll in 'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll') {
+            Copy-Item (Join-Path $crt.FullName $dll) $target
+          }
+          Get-ChildItem $target | Format-Table Name, Length, @{ n = 'Version'; e = { $_.VersionInfo.FileVersion } }
+
+      - name: Publish (CPU + Vulkan)
+        run: >
+          dotnet publish src/VideoTranscriber/VideoTranscriber.csproj -c Release -r win-x64 --self-contained
+          -p:PublishSingleFile=true -p:Version=${{ steps.version.outputs.value }} -o publish/standard
+
+      - name: Publish (CPU + Vulkan + CUDA)
+        run: >
+          dotnet publish src/VideoTranscriber/VideoTranscriber.csproj -c Release -r win-x64 --self-contained
+          -p:PublishSingleFile=true -p:IncludeCuda=true -p:Version=${{ steps.version.outputs.value }} -o publish/cuda
+
+      - name: Collect release files
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item publish/standard/VideoTranscriber.exe dist/VideoTranscriber.exe
+          Copy-Item publish/cuda/VideoTranscriber.exe dist/VideoTranscriber-CUDA.exe
+          Get-ChildItem dist | ForEach-Object {
+            "{0}  {1}" -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant(), $_.Name
+          } | Set-Content dist/SHA256SUMS.txt
+          Get-ChildItem dist | Format-Table Name, @{ n = 'MB'; e = { [math]::Round($_.Length / 1MB, 1) } }
+
+      # End-to-end check of the real single-file exe on Windows: native library loading, FFmpeg, model
+      # download and all output formats.
+      - name: Smoke test
+        run: |
+          choco install ffmpeg -y --no-progress | Out-Null
+          $env:PATH = "C:\ProgramData\chocolatey\bin;$env:PATH"
+
+          $exe = (Resolve-Path dist/VideoTranscriber.exe).Path
+          & $exe --version
+          if ($LASTEXITCODE -ne 0) { throw "--version failed" }
+
+          New-Item -ItemType Directory -Force -Path smoke | Out-Null
+          try {
+            Add-Type -AssemblyName System.Speech
+            $synth = New-Object System.Speech.Synthesis.SpeechSynthesizer
+            $synth.SetOutputToWaveFile("$PWD/smoke/speech.wav")
+            $synth.Speak("Hello from the release pipeline. This is a short test of the video transcriber.")
+            $synth.Dispose()
+          } catch {
+            Write-Warning "Speech synthesis unavailable ($_); using a test tone instead."
+            ffmpeg -hide_banner -loglevel error -y -f lavfi -i "sine=frequency=440:duration=5" smoke/speech.wav
+          }
+          ffmpeg -hide_banner -loglevel error -y -f lavfi -i "testsrc2=size=320x240:rate=25" -i smoke/speech.wav `
+            -shortest -c:v libx264 -pix_fmt yuv420p -c:a aac "smoke/smoke test.mp4"
+
+          & $exe "smoke/smoke test.mp4" --model tiny --format all
+          if ($LASTEXITCODE -ne 0) { throw "Transcription failed with exit code $LASTEXITCODE" }
+          foreach ($ext in 'txt', 'srt', 'vtt', 'json') {
+            if (-not (Test-Path "smoke/smoke test.$ext")) { throw "Missing smoke/smoke test.$ext" }
+          }
+          Get-Content "smoke/smoke test.srt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VideoTranscriber-${{ steps.version.outputs.value }}
+          path: dist/
+
+      - name: Create GitHub Release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: VideoTranscriber ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            dist/VideoTranscriber.exe
+            dist/VideoTranscriber-CUDA.exe
+            dist/SHA256SUMS.txt
+          body: |
+            ## Download
+
+            * **VideoTranscriber.exe** - recommended for everyone. Runs on the CPU, and on the GPU through Vulkan when a compatible graphics driver is present.
+            * **VideoTranscriber-CUDA.exe** - larger build that can also use NVIDIA CUDA. Only useful if you have an NVIDIA GPU *and* the CUDA Toolkit installed.
+
+            Windows 10/11 64-bit. FFmpeg is required; the app offers to download it on first run. See the README for details and for the SmartScreen warning on first launch.
