@@ -53,3 +53,4 @@ if ($LASTEXITCODE -ne 1) { throw "Expected exit code 1 for a missing file, got $
 
 Remove-Item -Recurse -Force $work
 Write-Host "Smoke test passed."
+exit 0
