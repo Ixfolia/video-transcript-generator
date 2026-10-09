@@ -19,7 +19,7 @@ By default you get `.txt` and `.srt`, saved next to the video.
 2. Put it in a folder of your choice (for example `C:\Tools\VideoTranscriber`). No installer is needed.
 3. On first run it offers to download FFmpeg (needed to read videos), and it downloads the Whisper model you picked. Both are one-time downloads; after that it works offline.
 
-Requirements: Windows 10 or 11, 64-bit. A GPU is optional.
+Requirements: 64-bit Windows 11 (or Windows Server 2022 or newer), which is what the Whisper.net speech engine officially supports. It may work on an up-to-date Windows 10, but that is untested. A GPU is optional.
 
 ### "Windows protected your PC" (SmartScreen)
 

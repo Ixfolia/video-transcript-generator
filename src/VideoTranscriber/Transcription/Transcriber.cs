@@ -206,7 +206,7 @@ public sealed partial class Transcriber : IDisposable
     {
         string hint = OperatingSystem.IsWindows()
             ? "Install the Microsoft Visual C++ Redistributable (x64) from https://aka.ms/vs/17/release/vc_redist.x64.exe and try again. "
-              + "Whisper.net requires Windows 10/11 (64-bit). Run with --cpu to rule out GPU driver problems."
+              + "The speech engine officially supports 64-bit Windows 11 and Windows Server 2022 or newer. Run with --cpu to rule out GPU driver problems."
             : "Make sure libstdc++ and glibc 2.31+ are installed. Run with --cpu to rule out GPU driver problems.";
         return new UserFacingException($"Couldn't load the speech recognition engine: {ex.Message}", hint, ex);
     }

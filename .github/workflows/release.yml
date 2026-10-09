@@ -98,4 +98,4 @@ jobs:
             * **VideoTranscriber.exe** - recommended for everyone. Runs on the CPU, and on the GPU through Vulkan when a compatible graphics driver is present.
             * **VideoTranscriber-CUDA.exe** - larger build that can also use NVIDIA CUDA. Only useful if you have an NVIDIA GPU *and* the CUDA Toolkit installed.
 
-            Windows 10/11 64-bit. FFmpeg is required; the app offers to download it on first run. See the README for details and for the SmartScreen warning on first launch.
+            64-bit Windows 11 (Windows 10 may work but is untested). FFmpeg is required; the app offers to download it on first run. See the README for details and for the SmartScreen warning on first launch.
