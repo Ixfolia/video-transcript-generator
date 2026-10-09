@@ -19,6 +19,8 @@ public sealed class TranscriptionApp
     public const int ExitUsageError = 2;
     public const int ExitCancelled = 130;
 
+    private const string TempFilePrefix = "videotranscriber-";
+
     private readonly HttpClient httpClient;
 
     public TranscriptionApp(HttpClient httpClient)
@@ -36,6 +38,7 @@ public sealed class TranscriptionApp
         try
         {
             ConsoleUi.Info($"VideoTranscriber {Version}");
+            DeleteStaleTempFiles();
 
             List<InputFile> inputs = ValidateInputs(options.InputFiles);
             if (inputs.Count == 0)
@@ -207,7 +210,7 @@ public sealed class TranscriptionApp
             ConsoleUi.Dim($"The file has {media.AudioStreamCount} audio tracks; using the first one.");
         }
 
-        string wavPath = Path.Combine(Path.GetTempPath(), $"videotranscriber-{Guid.NewGuid():N}.wav");
+        string wavPath = Path.Combine(Path.GetTempPath(), $"{TempFilePrefix}{Guid.NewGuid():N}.wav");
         try
         {
             using (var progress = new ProgressBar("Extracting audio"))
@@ -301,6 +304,29 @@ public sealed class TranscriptionApp
         }
 
         return directory;
+    }
+
+    /// <summary>
+    /// Temp WAV files are deleted at the end of every run, but a crash or a force-closed window can leave one behind.
+    /// Remove leftovers that are clearly not in use by another running instance.
+    /// </summary>
+    private static void DeleteStaleTempFiles()
+    {
+        try
+        {
+            DateTime cutoff = DateTime.UtcNow.AddDays(-2);
+            foreach (string path in Directory.EnumerateFiles(Path.GetTempPath(), TempFilePrefix + "*.wav"))
+            {
+                if (File.GetLastWriteTimeUtc(path) < cutoff)
+                {
+                    TryDelete(path);
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Best effort only.
+        }
     }
 
     private static string FormatDuration(TimeSpan time) =>
