@@ -46,40 +46,49 @@ jobs:
             Write-Warning "Visual C++ runtime not found on the runner; the exe will rely on the system copy."
             exit 0
           }
-          $target = "src/VideoTranscriber/vcredist"
+          $target = "src/vcredist"
           New-Item -ItemType Directory -Force -Path $target | Out-Null
           foreach ($dll in 'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll') {
             Copy-Item (Join-Path $crt.FullName $dll) $target
           }
           Get-ChildItem $target | Format-Table Name, Length, @{ n = 'Version'; e = { $_.VersionInfo.FileVersion } }
 
-      - name: Publish (CPU + Vulkan)
+      - name: Publish desktop app (CPU + Vulkan)
         run: >
-          dotnet publish src/VideoTranscriber/VideoTranscriber.csproj -c Release -r win-x64 --self-contained
-          -p:PublishSingleFile=true -p:Version=${{ steps.version.outputs.value }} -o publish/standard
+          dotnet publish src/VideoTranscriber.Gui/VideoTranscriber.Gui.csproj -c Release -r win-x64 --self-contained
+          -p:PublishSingleFile=true -p:Version=${{ steps.version.outputs.value }} -o publish/gui
 
-      - name: Publish (CPU + Vulkan + CUDA)
+      - name: Publish desktop app (CPU + Vulkan + CUDA)
         run: >
-          dotnet publish src/VideoTranscriber/VideoTranscriber.csproj -c Release -r win-x64 --self-contained
-          -p:PublishSingleFile=true -p:IncludeCuda=true -p:Version=${{ steps.version.outputs.value }} -o publish/cuda
+          dotnet publish src/VideoTranscriber.Gui/VideoTranscriber.Gui.csproj -c Release -r win-x64 --self-contained
+          -p:PublishSingleFile=true -p:IncludeCuda=true -p:Version=${{ steps.version.outputs.value }} -o publish/gui-cuda
+
+      - name: Publish command-line app
+        run: >
+          dotnet publish src/VideoTranscriber.Cli/VideoTranscriber.Cli.csproj -c Release -r win-x64 --self-contained
+          -p:PublishSingleFile=true -p:Version=${{ steps.version.outputs.value }} -o publish/cli
 
       - name: Collect release files
         run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Copy-Item publish/standard/VideoTranscriber.exe dist/VideoTranscriber.exe
-          Copy-Item publish/cuda/VideoTranscriber.exe dist/VideoTranscriber-CUDA.exe
+          Copy-Item publish/gui/VideoTranscriber.exe dist/VideoTranscriber.exe
+          Copy-Item publish/gui-cuda/VideoTranscriber.exe dist/VideoTranscriber-CUDA.exe
+          Copy-Item publish/cli/VideoTranscriber-CLI.exe dist/VideoTranscriber-CLI.exe
           Get-ChildItem dist | ForEach-Object {
             "{0}  {1}" -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant(), $_.Name
           } | Set-Content dist/SHA256SUMS.txt
           Get-ChildItem dist | Format-Table Name, @{ n = 'MB'; e = { [math]::Round($_.Length / 1MB, 1) } }
 
-      # End-to-end check of the real single-file exe on Windows before anything is published.
-      - name: Smoke test
-        run: ./build/smoke-test.ps1 -Exe dist/VideoTranscriber.exe
+      # End-to-end checks of the real single-file exes on Windows before anything is published.
+      - name: Smoke test (desktop app)
+        run: ./build/smoke-test.ps1 -Exe dist/VideoTranscriber.exe -Mode gui
 
       # The runner has no NVIDIA GPU, so this exercises the CUDA build's fallback to CPU.
-      - name: Smoke test (CUDA build)
-        run: ./build/smoke-test.ps1 -Exe dist/VideoTranscriber-CUDA.exe
+      - name: Smoke test (desktop app, CUDA build)
+        run: ./build/smoke-test.ps1 -Exe dist/VideoTranscriber-CUDA.exe -Mode gui
+
+      - name: Smoke test (command-line app)
+        run: ./build/smoke-test.ps1 -Exe dist/VideoTranscriber-CLI.exe -Mode cli
 
       - uses: actions/upload-artifact@v4
         with:
@@ -95,11 +104,13 @@ jobs:
           files: |
             dist/VideoTranscriber.exe
             dist/VideoTranscriber-CUDA.exe
+            dist/VideoTranscriber-CLI.exe
             dist/SHA256SUMS.txt
           body: |
             ## Download
 
-            * **VideoTranscriber.exe** - recommended for everyone. Runs on the CPU, and on the GPU through Vulkan when a compatible graphics driver is present.
-            * **VideoTranscriber-CUDA.exe** - larger build that can also use NVIDIA CUDA. Only useful if you have an NVIDIA GPU *and* the CUDA Toolkit installed.
+            * **VideoTranscriber.exe** - the desktop app, recommended for everyone. Double-click it, or drop videos onto it. Runs on the CPU, and on the GPU through Vulkan when a compatible graphics driver is present.
+            * **VideoTranscriber-CUDA.exe** - the same app with NVIDIA CUDA support (much larger). Only useful if you have an NVIDIA GPU *and* the CUDA Toolkit installed.
+            * **VideoTranscriber-CLI.exe** - command-line version for scripts and batch jobs.
 
-            64-bit Windows 11 (Windows 10 may work but is untested). FFmpeg is required; the app offers to download it on first run. See the README for details and for the SmartScreen warning on first launch.
+            64-bit Windows 11 (Windows 10 may work but is untested). FFmpeg is required; the app offers to download it on first use. See the README for details and for the SmartScreen warning on first launch.

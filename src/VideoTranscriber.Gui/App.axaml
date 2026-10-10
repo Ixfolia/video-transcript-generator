@@ -1,0 +1,16 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="VideoTranscriber.Gui.App"
+             RequestedThemeVariant="Default">
+  <!-- "Default" follows the Windows light/dark setting. -->
+  <Application.Styles>
+    <FluentTheme>
+      <FluentTheme.Palettes>
+        <!-- Brand violet (matches the icon) instead of the default Windows blue. -->
+        <ColorPaletteResources x:Key="Light" Accent="#5B47E0" />
+        <ColorPaletteResources x:Key="Dark" Accent="#7C6CF0" />
+      </FluentTheme.Palettes>
+    </FluentTheme>
+    <StyleInclude Source="avares://VideoTranscriber/Views/Styles.axaml" />
+  </Application.Styles>
+</Application>

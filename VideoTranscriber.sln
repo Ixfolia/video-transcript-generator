@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VideoTranscriber.Core", "sr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VideoTranscriber.Cli", "src\VideoTranscriber.Cli\VideoTranscriber.Cli.csproj", "{F202FCD9-5C12-40FB-A265-D97EE1FC1194}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VideoTranscriber.Gui", "src\VideoTranscriber.Gui\VideoTranscriber.Gui.csproj", "{77DE090C-5502-45AC-BA5C-B27A0EB47906}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -34,10 +36,15 @@ Global
 		{F202FCD9-5C12-40FB-A265-D97EE1FC1194}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F202FCD9-5C12-40FB-A265-D97EE1FC1194}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F202FCD9-5C12-40FB-A265-D97EE1FC1194}.Release|Any CPU.Build.0 = Release|Any CPU
+		{77DE090C-5502-45AC-BA5C-B27A0EB47906}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{77DE090C-5502-45AC-BA5C-B27A0EB47906}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{77DE090C-5502-45AC-BA5C-B27A0EB47906}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{77DE090C-5502-45AC-BA5C-B27A0EB47906}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{84647BEC-D5FD-4421-B41F-10046BB2EF8C} = {80F6B2D0-A5F0-4AE4-A0EA-279DBF832607}
 		{D039B26D-0D63-4E99-ADA4-91815708B1C7} = {F7369AC9-6FC4-4153-9B6D-3F68D0C3ABAE}
 		{F202FCD9-5C12-40FB-A265-D97EE1FC1194} = {F7369AC9-6FC4-4153-9B6D-3F68D0C3ABAE}
+		{77DE090C-5502-45AC-BA5C-B27A0EB47906} = {F7369AC9-6FC4-4153-9B6D-3F68D0C3ABAE}
 	EndGlobalSection
 EndGlobal

@@ -81,7 +81,7 @@ public static class FfmpegLocator
         {
             return string.Join(Environment.NewLine,
                 "Install FFmpeg in one of these ways:",
-                "  1. Run VideoTranscriber again and answer Y when it offers to download FFmpeg, or",
+                "  1. Run VideoTranscriber again and accept when it offers to download FFmpeg, or",
                 "  2. In a terminal run:  winget install --id Gyan.FFmpeg  (then open a new terminal window), or",
                 "  3. Download a build from https://www.gyan.dev/ffmpeg/builds/ or https://github.com/BtbN/FFmpeg-Builds/releases",
                 "     and copy ffmpeg.exe and ffprobe.exe (from its bin folder) next to VideoTranscriber.exe.");

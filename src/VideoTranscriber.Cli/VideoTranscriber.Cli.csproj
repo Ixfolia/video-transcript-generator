@@ -3,7 +3,7 @@
   <!-- Command-line version, for scripts and terminals. See the README for its options. -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <AssemblyName>VideoTranscriber.Cli</AssemblyName>
+    <AssemblyName>VideoTranscriber-CLI</AssemblyName>
     <RootNamespace>VideoTranscriber</RootNamespace>
   </PropertyGroup>
 

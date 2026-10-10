@@ -12,7 +12,7 @@ public static partial class CommandLineDefinition
     {
         var videoArgument = new Argument<string[]>("video")
         {
-            Description = "Video (or audio) file to transcribe. You can pass several files, or drag them onto VideoTranscriber.exe.",
+            Description = "Video (or audio) file to transcribe. You can pass several files.",
             Arity = ArgumentArity.OneOrMore,
         };
         videoArgument.Validators.Add(result =>
@@ -89,9 +89,9 @@ public static partial class CommandLineDefinition
             "VideoTranscriber - create transcripts and subtitles from video files, offline, using OpenAI Whisper." +
             Environment.NewLine + Environment.NewLine +
             "Examples:" + Environment.NewLine +
-            "  VideoTranscriber \"C:\\videos\\talk.mp4\"" + Environment.NewLine +
-            "  VideoTranscriber talk.mp4 --model small --format srt,vtt" + Environment.NewLine +
-            "  VideoTranscriber interview.mkv --language de --translate --output C:\\transcripts")
+            "  VideoTranscriber-CLI \"C:\\videos\\talk.mp4\"" + Environment.NewLine +
+            "  VideoTranscriber-CLI talk.mp4 --model small --format srt,vtt" + Environment.NewLine +
+            "  VideoTranscriber-CLI interview.mkv --language de --translate --output C:\\transcripts")
         {
             videoArgument,
             modelOption,

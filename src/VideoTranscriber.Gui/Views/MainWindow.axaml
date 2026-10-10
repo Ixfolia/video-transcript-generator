@@ -1,0 +1,218 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:VideoTranscriber.Gui.ViewModels"
+        x:Class="VideoTranscriber.Gui.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="VideoTranscriber"
+        Icon="avares://VideoTranscriber/Assets/app.ico"
+        Width="1120" Height="740" MinWidth="880" MinHeight="580"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource AppBackgroundBrush}"
+        DragDrop.AllowDrop="True">
+
+  <Grid RowDefinitions="Auto,*,Auto">
+
+    <!-- Header -->
+    <Grid Grid.Row="0" ColumnDefinitions="Auto,*" Margin="24,18,24,12">
+      <Image Source="avares://VideoTranscriber/Assets/app.png" Width="44" Height="44" VerticalAlignment="Center" />
+      <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
+        <TextBlock Classes="title" Text="VideoTranscriber" />
+        <TextBlock Classes="muted" FontSize="13"
+                   Text="Turn videos into transcripts and subtitles, offline on your own PC." />
+      </StackPanel>
+    </Grid>
+
+    <!-- Body -->
+    <Grid Grid.Row="1" ColumnDefinitions="*,16,340" Margin="24,0,24,0">
+
+      <!-- Left: queue and transcript -->
+      <Grid Grid.Column="0" RowDefinitions="*,12,230">
+
+        <Border Grid.Row="0" Classes="card" Padding="12">
+          <Grid RowDefinitions="Auto,*">
+            <Grid ColumnDefinitions="*,Auto,Auto" Margin="4,0,0,10" IsVisible="{Binding HasFiles}">
+              <TextBlock Classes="sectionHeader" Margin="0" VerticalAlignment="Center" Text="Videos" />
+              <Button Grid.Column="1" Margin="0,0,8,0" Content="Clear finished"
+                      Command="{Binding ClearFinishedCommand}" IsEnabled="{Binding CanClearFinished}" />
+              <Button Grid.Column="2" Content="+ Add videos…" Classes="accent"
+                      Command="{Binding AddVideosCommand}" />
+            </Grid>
+
+            <!-- Empty state: a large drop target -->
+            <Border Grid.Row="1" Name="DropZone" Classes="dropZone" Classes.dragOver="{Binding IsDragOver}"
+                    IsVisible="{Binding !HasFiles}">
+              <Panel>
+                <Rectangle Stroke="{DynamicResource BrandBrush}" StrokeThickness="2" StrokeDashArray="5,4"
+                           RadiusX="10" RadiusY="10" Opacity="0.55" />
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
+                  <PathIcon Width="54" Height="54" Foreground="{DynamicResource BrandBrush}"
+                            Data="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20M10,10.5V18.5L16,14.5L10,10.5Z" />
+                  <TextBlock HorizontalAlignment="Center" FontSize="18" FontWeight="SemiBold" Text="Drop videos here" />
+                  <TextBlock HorizontalAlignment="Center" Classes="muted" FontSize="13"
+                             Text="MP4, MKV, MOV, AVI, WebM, MP3, WAV and more" />
+                  <Button HorizontalAlignment="Center" Margin="0,8,0,0" Classes="accent big"
+                          Content="Choose videos…" Command="{Binding AddVideosCommand}" />
+                </StackPanel>
+              </Panel>
+            </Border>
+
+            <!-- The queue -->
+            <ListBox Grid.Row="1" Classes="queue" IsVisible="{Binding HasFiles}" Background="Transparent"
+                     ItemsSource="{Binding Files}" SelectedItem="{Binding SelectedFile}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:FileItemViewModel">
+                  <Grid ColumnDefinitions="Auto,*,Auto" Margin="10,8">
+                    <PathIcon Width="22" Height="22" VerticalAlignment="Top" Margin="0,2,12,0"
+                              Foreground="{DynamicResource BrandBrush}"
+                              Data="M18,4L20,8H17L15,4H13L15,8H12L10,4H8L10,8H7L5,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V4H18Z" />
+                    <StackPanel Grid.Column="1" Spacing="3">
+                      <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                                 ToolTip.Tip="{Binding FullPath}" />
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Classes="status" Text="{Binding StatusText}"
+                                   Classes.done="{Binding IsDone}" Classes.failed="{Binding IsFailed}"
+                                   Classes.active="{Binding IsActive}" />
+                        <TextBlock Classes="muted" Text="{Binding DurationText}" />
+                        <TextBlock Classes="muted" Text="{Binding ResultText}" TextTrimming="CharacterEllipsis" />
+                      </StackPanel>
+                      <ProgressBar Value="{Binding Progress}" Maximum="100" Height="6" MinHeight="6"
+                                   IsIndeterminate="{Binding IsIndeterminate}" IsVisible="{Binding ShowProgress}"
+                                   Margin="0,4,0,0" />
+                      <TextBlock Classes="error" Text="{Binding ErrorMessage}" IsVisible="{Binding IsFailed}" />
+                      <TextBlock Classes="muted" Text="{Binding ErrorHint}" TextWrapping="Wrap"
+                                 IsVisible="{Binding IsFailed}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top"
+                                Margin="12,0,0,0">
+                      <Button Classes="link accent" Content="Open transcript" Command="{Binding OpenCommand}"
+                              IsVisible="{Binding IsDone}" />
+                      <Button Classes="link" Content="Show in folder" Command="{Binding ShowInFolderCommand}"
+                              IsVisible="{Binding IsDone}" />
+                      <Button Classes="link" Content="Retry" Command="{Binding RetryCommand}"
+                              IsVisible="{Binding IsFailed}" />
+                      <Button Classes="link" Content="✕" ToolTip.Tip="Remove from the list"
+                              Command="{Binding RemoveCommand}" IsVisible="{Binding CanRemove}" />
+                    </StackPanel>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Grid>
+        </Border>
+
+        <!-- Transcript preview and log -->
+        <Border Grid.Row="2" Classes="card" Padding="8,4,8,8">
+          <TabControl Padding="0">
+            <TabItem Header="Live transcript" FontSize="14">
+              <Grid RowDefinitions="*,Auto">
+                <Border Background="{DynamicResource TranscriptBackgroundBrush}" CornerRadius="6" Padding="10,8">
+                  <Panel>
+                    <ScrollViewer Name="TranscriptScroller">
+                      <SelectableTextBlock Text="{Binding SelectedFile.TranscriptText, FallbackValue=''}"
+                                           TextWrapping="Wrap" FontSize="13" LineHeight="20" />
+                    </ScrollViewer>
+                    <TextBlock Classes="muted" FontSize="13" VerticalAlignment="Center" HorizontalAlignment="Center"
+                               TextAlignment="Center" TextWrapping="Wrap"
+                               IsVisible="{Binding !SelectedFile.HasTranscript, FallbackValue=True}"
+                               Text="The recognized text appears here while a video is being transcribed." />
+                  </Panel>
+                </Border>
+                <Button Grid.Row="1" HorizontalAlignment="Right" Margin="0,6,0,0" Classes="link"
+                        Content="Copy text" Command="{Binding CopyTranscriptCommand}"
+                        IsEnabled="{Binding SelectedFile.HasTranscript, FallbackValue=False}" />
+              </Grid>
+            </TabItem>
+            <TabItem Header="Log" FontSize="14">
+              <Border Background="{DynamicResource TranscriptBackgroundBrush}" CornerRadius="6" Padding="10,8">
+                <ScrollViewer Name="LogScroller">
+                  <ItemsControl ItemsSource="{Binding Log}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="x:String">
+                        <SelectableTextBlock Text="{Binding}" FontSize="12" TextWrapping="Wrap"
+                                             FontFamily="Cascadia Mono,Consolas,Menlo,monospace" />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </Border>
+            </TabItem>
+          </TabControl>
+        </Border>
+      </Grid>
+
+      <!-- Right: settings -->
+      <Border Grid.Column="2" Classes="card">
+        <ScrollViewer>
+          <StackPanel IsEnabled="{Binding CanEditSettings}">
+            <TextBlock Classes="sectionHeader" Text="Settings" />
+
+            <TextBlock Classes="label" Margin="0,0,0,4" Text="Accuracy (model)" />
+            <ComboBox ItemsSource="{Binding Models}" SelectedItem="{Binding SelectedModel}"
+                      HorizontalAlignment="Stretch">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:ModelOption">
+                  <StackPanel>
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Description}" Classes="muted" TextWrapping="Wrap" />
+                  </StackPanel>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock Classes="muted" Margin="0,4,0,0" TextWrapping="Wrap"
+                       Text="Downloaded once on first use, then works offline." />
+
+            <TextBlock Classes="label" Text="Spoken language" />
+            <ComboBox ItemsSource="{Binding Languages}" SelectedItem="{Binding SelectedLanguage}"
+                      HorizontalAlignment="Stretch" MaxDropDownHeight="360" />
+            <CheckBox Margin="0,8,0,0" IsChecked="{Binding Translate}">
+              <TextBlock Text="Translate the speech into English" TextWrapping="Wrap" />
+            </CheckBox>
+
+            <TextBlock Classes="label" Text="Create these files" />
+            <WrapPanel>
+              <CheckBox Margin="0,0,14,0" IsChecked="{Binding FormatTxt}" Content="Text (.txt)" />
+              <CheckBox Margin="0,0,14,0" IsChecked="{Binding FormatSrt}" Content="Subtitles (.srt)" />
+              <CheckBox Margin="0,0,14,0" IsChecked="{Binding FormatVtt}" Content="Web subtitles (.vtt)" />
+              <CheckBox Margin="0,0,14,0" IsChecked="{Binding FormatJson}" Content="Data (.json)" />
+            </WrapPanel>
+
+            <TextBlock Classes="label" Text="Save transcripts" />
+            <RadioButton GroupName="output" IsChecked="{Binding SaveNextToVideo}" Content="Next to each video" />
+            <RadioButton GroupName="output" IsChecked="{Binding SaveToCustomFolder}" Content="In this folder:" />
+            <Grid ColumnDefinitions="*,Auto" Margin="28,4,0,0" IsEnabled="{Binding SaveToCustomFolder}">
+              <TextBox Text="{Binding OutputFolder}" Watermark="Choose a folder…" IsReadOnly="True" />
+              <Button Grid.Column="1" Margin="6,0,0,0" Content="Browse…" Command="{Binding BrowseOutputFolderCommand}" />
+            </Grid>
+
+            <TextBlock Classes="label" Text="Performance" />
+            <CheckBox IsChecked="{Binding UseGpu}">
+              <TextBlock Text="Use the graphics card when available (faster)" TextWrapping="Wrap" />
+            </CheckBox>
+            <TextBlock Classes="muted" Margin="0,10,0,0" TextWrapping="Wrap" Text="{Binding EngineInfo}"
+                       IsVisible="{Binding EngineInfo, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
+    </Grid>
+
+    <!-- Bottom bar -->
+    <Border Grid.Row="2" Margin="24,12,24,18">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <StackPanel VerticalAlignment="Center" Spacing="4" Margin="0,0,16,0">
+          <TextBlock Classes="statusBar" Classes.error="{Binding StatusIsError}" Text="{Binding StatusMessage}"
+                     TextWrapping="Wrap" />
+          <Grid ColumnDefinitions="Auto,*,Auto" IsVisible="{Binding ShowActivity}">
+            <TextBlock Classes="muted" Text="{Binding ActivityLabel}" VerticalAlignment="Center" Margin="0,0,10,0" />
+            <ProgressBar Grid.Column="1" Value="{Binding ActivityProgress}" Maximum="100" MinWidth="200" Height="6"
+                         MinHeight="6" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Classes="muted" Text="{Binding ActivityDetail}" VerticalAlignment="Center"
+                       Margin="10,0,0,0" />
+          </Grid>
+        </StackPanel>
+        <Button Grid.Column="1" Classes="big" Margin="0,0,10,0" Content="Cancel" Command="{Binding CancelCommand}"
+                IsVisible="{Binding IsBusy}" />
+        <Button Grid.Column="2" Classes="accent big" Content="Start transcribing" Command="{Binding StartCommand}" />
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

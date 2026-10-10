@@ -1,0 +1,126 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Styles.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F3F4F8" />
+          <SolidColorBrush x:Key="CardBackgroundBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="CardBorderBrush" Color="#E3E5EC" />
+          <SolidColorBrush x:Key="MutedTextBrush" Color="#5F6473" />
+          <SolidColorBrush x:Key="DropZoneBrush" Color="#F7F7FD" />
+          <SolidColorBrush x:Key="DropZoneActiveBrush" Color="#EAE8FD" />
+          <SolidColorBrush x:Key="SuccessBrush" Color="#15803D" />
+          <SolidColorBrush x:Key="ErrorBrush" Color="#C42B1C" />
+          <SolidColorBrush x:Key="BrandBrush" Color="#5B47E0" />
+          <SolidColorBrush x:Key="TranscriptBackgroundBrush" Color="#FAFAFC" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="AppBackgroundBrush" Color="#17181D" />
+          <SolidColorBrush x:Key="CardBackgroundBrush" Color="#202229" />
+          <SolidColorBrush x:Key="CardBorderBrush" Color="#30333D" />
+          <SolidColorBrush x:Key="MutedTextBrush" Color="#A3A8B8" />
+          <SolidColorBrush x:Key="DropZoneBrush" Color="#1C1D24" />
+          <SolidColorBrush x:Key="DropZoneActiveBrush" Color="#2A2650" />
+          <SolidColorBrush x:Key="SuccessBrush" Color="#4ADE80" />
+          <SolidColorBrush x:Key="ErrorBrush" Color="#FF8A80" />
+          <SolidColorBrush x:Key="BrandBrush" Color="#9D8CFF" />
+          <SolidColorBrush x:Key="TranscriptBackgroundBrush" Color="#1A1B21" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Styles.Resources>
+
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="16" />
+  </Style>
+
+  <Style Selector="TextBlock.title">
+    <Setter Property="FontSize" Value="22" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <Style Selector="TextBlock.sectionHeader">
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Margin" Value="0,0,0,8" />
+  </Style>
+
+  <Style Selector="TextBlock.label">
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Margin" Value="0,12,0,4" />
+  </Style>
+
+  <Style Selector="TextBlock.muted">
+    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+
+  <Style Selector="TextBlock.status">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+  </Style>
+  <Style Selector="TextBlock.status.done">
+    <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.status.failed">
+    <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.status.active">
+    <Setter Property="Foreground" Value="{DynamicResource BrandBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <Style Selector="TextBlock.error">
+    <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+
+  <Style Selector="TextBlock.statusBar.error">
+    <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}" />
+  </Style>
+
+  <Style Selector="Button.link">
+    <Setter Property="Padding" Value="8,3" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="MinHeight" Value="0" />
+  </Style>
+
+  <Style Selector="Button.big">
+    <Setter Property="Padding" Value="22,9" />
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <Style Selector="Border.dropZone">
+    <Setter Property="Background" Value="{DynamicResource DropZoneBrush}" />
+    <Setter Property="CornerRadius" Value="10" />
+  </Style>
+  <Style Selector="Border.dropZone.dragOver">
+    <Setter Property="Background" Value="{DynamicResource DropZoneActiveBrush}" />
+  </Style>
+
+  <Style Selector="ListBox.queue > ListBoxItem">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="0,0,0,6" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <!-- A soft tint for the selected video instead of a solid accent fill, so its buttons stay readable. -->
+  <Style Selector="ListBox.queue > ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DropZoneActiveBrush}" />
+  </Style>
+  <Style Selector="ListBox.queue > ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DropZoneActiveBrush}" />
+  </Style>
+  <Style Selector="ListBox.queue > ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource DropZoneBrush}" />
+  </Style>
+</Styles>

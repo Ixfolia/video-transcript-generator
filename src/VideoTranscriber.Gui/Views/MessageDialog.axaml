@@ -1,0 +1,16 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="VideoTranscriber.Gui.Views.MessageDialog"
+        Width="460" SizeToContent="Height" CanResize="False" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource CardBackgroundBrush}"
+        Icon="avares://VideoTranscriber/Assets/app.ico">
+  <StackPanel Margin="22" Spacing="16">
+    <TextBlock Name="TitleText" FontSize="17" FontWeight="SemiBold" TextWrapping="Wrap" />
+    <SelectableTextBlock Name="MessageText" TextWrapping="Wrap" LineHeight="20" />
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Name="NoButton" MinWidth="90" HorizontalContentAlignment="Center" IsCancel="True" />
+      <Button Name="YesButton" MinWidth="90" HorizontalContentAlignment="Center" Classes="accent" IsDefault="True" />
+    </StackPanel>
+  </StackPanel>
+</Window>

@@ -27,7 +27,7 @@ jobs:
       - name: Test
         run: dotnet test -c Release --no-build
 
-  # Builds the single-file Windows exe exactly like a release and runs it end to end.
+  # Builds the single-file Windows exes exactly like a release and runs them end to end.
   windows-exe:
     runs-on: windows-latest
     defaults:
@@ -41,8 +41,11 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Publish single-file exe
+      - name: Publish single-file exes
         run: dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true
 
-      - name: Smoke test
-        run: ./build/smoke-test.ps1 -Exe src/VideoTranscriber/bin/Release/net8.0/win-x64/publish/VideoTranscriber.exe
+      - name: Smoke test (desktop app)
+        run: ./build/smoke-test.ps1 -Mode gui -Exe src/VideoTranscriber.Gui/bin/Release/net8.0/win-x64/publish/VideoTranscriber.exe
+
+      - name: Smoke test (command-line app)
+        run: ./build/smoke-test.ps1 -Mode cli -Exe src/VideoTranscriber.Cli/bin/Release/net8.0/win-x64/publish/VideoTranscriber-CLI.exe

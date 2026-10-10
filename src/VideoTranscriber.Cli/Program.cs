@@ -27,7 +27,7 @@ RootCommand rootCommand = CommandLineDefinition.Create(app.RunAsync);
 int exitCode;
 if (args.Length == 0)
 {
-    ConsoleUi.Info("Drag a video file onto VideoTranscriber.exe, or run it from a terminal:");
+    ConsoleUi.Info("This is the command-line version. For the desktop app, run VideoTranscriber.exe instead.");
     ConsoleUi.Info(string.Empty);
     await rootCommand.Parse(["--help"]).InvokeAsync();
     exitCode = TranscriptionApp.ExitFailure;
@@ -44,7 +44,7 @@ else
             ConsoleUi.Error(error.Message);
         }
 
-        ConsoleUi.Info("Run 'VideoTranscriber --help' to see all options.");
+        ConsoleUi.Info("Run 'VideoTranscriber-CLI --help' to see all options.");
         exitCode = TranscriptionApp.ExitUsageError;
     }
     else

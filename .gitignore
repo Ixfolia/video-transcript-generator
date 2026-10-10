@@ -12,7 +12,7 @@ artifacts/
 *.snupkg
 
 # Visual C++ runtime DLLs copied in by the release workflow
-src/VideoTranscriber/vcredist/
+src/vcredist/
 
 # Test results and coverage
 TestResults/

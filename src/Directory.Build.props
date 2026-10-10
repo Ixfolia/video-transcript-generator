@@ -14,5 +14,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <WhisperNetVersion>1.9.1</WhisperNetVersion>
+    <!-- Symbols inside the DLLs, so a single-file publish produces just the exe. -->
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 </Project>
