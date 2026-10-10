@@ -12,10 +12,12 @@ public sealed class FfmpegSetup
         new("https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip");
 
     private readonly FileDownloader downloader;
+    private readonly IStatusReporter status;
 
-    public FfmpegSetup(FileDownloader downloader)
+    public FfmpegSetup(FileDownloader downloader, IStatusReporter status)
     {
         this.downloader = downloader;
+        this.status = status;
     }
 
     /// <summary>Locates FFmpeg (installing it if the user agrees) and configures FFMpegCore to use it.</summary>
@@ -25,11 +27,11 @@ public sealed class FfmpegSetup
 
         if (folder is null && ffmpegOnlyFolder is not null)
         {
-            ConsoleUi.Warning($"Found {FfmpegLocator.FfmpegFileName} in {ffmpegOnlyFolder}, but {FfmpegLocator.FfprobeFileName} is missing from that folder.");
+            status.Warning($"Found {FfmpegLocator.FfmpegFileName} in {ffmpegOnlyFolder}, but {FfmpegLocator.FfprobeFileName} is missing from that folder.");
         }
 
-        if (folder is null && CanAutoInstall() &&
-            ConsoleUi.Confirm($"FFmpeg is required but wasn't found. Download it now (about 200 MB, one time only)?", defaultAnswer: true))
+        if (folder is null && CanAutoInstall &&
+            await status.ConfirmAsync("FFmpeg is required but wasn't found. Download it now (about 200 MB, one time only)?", defaultAnswer: true))
         {
             folder = await InstallAsync(cancellationToken);
         }
@@ -45,8 +47,8 @@ public sealed class FfmpegSetup
         return folder;
     }
 
-    private static bool CanAutoInstall() =>
-        OperatingSystem.IsWindows() && Environment.Is64BitOperatingSystem && !Console.IsInputRedirected;
+    /// <summary>The automatic download is a Windows x64 build.</summary>
+    public static bool CanAutoInstall => OperatingSystem.IsWindows() && Environment.Is64BitOperatingSystem;
 
     private async Task<string> InstallAsync(CancellationToken cancellationToken)
     {
@@ -55,10 +57,10 @@ public sealed class FfmpegSetup
 
         try
         {
-            ConsoleUi.Step("Downloading FFmpeg...");
+            status.Step("Downloading FFmpeg...");
             await downloader.DownloadAsync(WindowsDownloadUrl, zipPath, "Downloading", cancellationToken);
 
-            ConsoleUi.Step("Unpacking FFmpeg...");
+            status.Step("Unpacking FFmpeg...");
             Directory.CreateDirectory(targetFolder);
             ExtractTools(zipPath, targetFolder);
         }
@@ -87,7 +89,7 @@ public sealed class FfmpegSetup
             }
         }
 
-        ConsoleUi.Success($"FFmpeg installed to {targetFolder}");
+        status.Success($"FFmpeg installed to {targetFolder}");
         return targetFolder;
     }
 

@@ -25,7 +25,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\VideoTranscriber\VideoTranscriber.csproj" />
+    <ProjectReference Include="..\..\src\VideoTranscriber.Core\VideoTranscriber.Core.csproj" />
+    <ProjectReference Include="..\..\src\VideoTranscriber.Cli\VideoTranscriber.Cli.csproj" />
   </ItemGroup>
 
 </Project>

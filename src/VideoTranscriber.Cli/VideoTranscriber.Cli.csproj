@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Command-line version, for scripts and terminals. See the README for its options. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>VideoTranscriber.Cli</AssemblyName>
+    <RootNamespace>VideoTranscriber</RootNamespace>
+  </PropertyGroup>
+
+  <Import Project="..\VideoTranscriber.App.props" />
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" Version="2.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\VideoTranscriber.Core\VideoTranscriber.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="VideoTranscriber.Tests" />
+  </ItemGroup>
+
+</Project>

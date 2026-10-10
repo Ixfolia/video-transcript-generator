@@ -12,10 +12,12 @@ public sealed class FileDownloader
     private static readonly TimeSpan StallTimeout = TimeSpan.FromSeconds(60);
 
     private readonly HttpClient httpClient;
+    private readonly IStatusReporter status;
 
-    public FileDownloader(HttpClient httpClient)
+    public FileDownloader(HttpClient httpClient, IStatusReporter status)
     {
         this.httpClient = httpClient;
+        this.status = status;
     }
 
     public static HttpClient CreateHttpClient()
@@ -69,7 +71,7 @@ public sealed class FileDownloader
 
             await using (Stream source = await response.Content.ReadAsStreamAsync(cancellationToken))
             await using (var target = new FileStream(partialPath, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 16, useAsync: true))
-            using (var progress = new ProgressBar(label))
+            using (IProgressReporter progress = status.BeginProgress(label))
             {
                 byte[] buffer = new byte[1 << 16];
                 while (true)

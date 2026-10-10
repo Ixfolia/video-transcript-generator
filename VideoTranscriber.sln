@@ -3,13 +3,15 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{29E7A5EA-C969-4722-913A-33B301F0D49D}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VideoTranscriber", "src\VideoTranscriber\VideoTranscriber.csproj", "{EA842667-5FC2-4E6B-B854-E16BD6649824}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{80F6B2D0-A5F0-4AE4-A0EA-279DBF832607}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VideoTranscriber.Tests", "tests\VideoTranscriber.Tests\VideoTranscriber.Tests.csproj", "{84647BEC-D5FD-4421-B41F-10046BB2EF8C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{F7369AC9-6FC4-4153-9B6D-3F68D0C3ABAE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VideoTranscriber.Core", "src\VideoTranscriber.Core\VideoTranscriber.Core.csproj", "{D039B26D-0D63-4E99-ADA4-91815708B1C7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VideoTranscriber.Cli", "src\VideoTranscriber.Cli\VideoTranscriber.Cli.csproj", "{F202FCD9-5C12-40FB-A265-D97EE1FC1194}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,17 +22,22 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{EA842667-5FC2-4E6B-B854-E16BD6649824}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EA842667-5FC2-4E6B-B854-E16BD6649824}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EA842667-5FC2-4E6B-B854-E16BD6649824}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EA842667-5FC2-4E6B-B854-E16BD6649824}.Release|Any CPU.Build.0 = Release|Any CPU
 		{84647BEC-D5FD-4421-B41F-10046BB2EF8C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{84647BEC-D5FD-4421-B41F-10046BB2EF8C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{84647BEC-D5FD-4421-B41F-10046BB2EF8C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{84647BEC-D5FD-4421-B41F-10046BB2EF8C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D039B26D-0D63-4E99-ADA4-91815708B1C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D039B26D-0D63-4E99-ADA4-91815708B1C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D039B26D-0D63-4E99-ADA4-91815708B1C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D039B26D-0D63-4E99-ADA4-91815708B1C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F202FCD9-5C12-40FB-A265-D97EE1FC1194}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F202FCD9-5C12-40FB-A265-D97EE1FC1194}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F202FCD9-5C12-40FB-A265-D97EE1FC1194}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F202FCD9-5C12-40FB-A265-D97EE1FC1194}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{EA842667-5FC2-4E6B-B854-E16BD6649824} = {29E7A5EA-C969-4722-913A-33B301F0D49D}
 		{84647BEC-D5FD-4421-B41F-10046BB2EF8C} = {80F6B2D0-A5F0-4AE4-A0EA-279DBF832607}
+		{D039B26D-0D63-4E99-ADA4-91815708B1C7} = {F7369AC9-6FC4-4153-9B6D-3F68D0C3ABAE}
+		{F202FCD9-5C12-40FB-A265-D97EE1FC1194} = {F7369AC9-6FC4-4153-9B6D-3F68D0C3ABAE}
 	EndGlobalSection
 EndGlobal

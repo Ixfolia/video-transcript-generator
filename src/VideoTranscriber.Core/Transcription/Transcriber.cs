@@ -51,7 +51,7 @@ public sealed partial class Transcriber : IDisposable
     /// <param name="modelPath">Path to a GGML model file.</param>
     /// <param name="cpuOnly">Skip GPU runtimes.</param>
     /// <param name="nativeLog">Receives whisper.cpp's own log lines (for --verbose).</param>
-    public static Transcriber Load(string modelPath, bool cpuOnly, Action<string>? nativeLog)
+    public static Transcriber Load(string modelPath, bool cpuOnly, IStatusReporter status, Action<string>? nativeLog)
     {
         NativeRuntime.Configure(cpuOnly);
 
@@ -77,7 +77,7 @@ public sealed partial class Transcriber : IDisposable
         {
             // Most often the GPU ran out of memory (e.g. the medium model on a small graphics card). The CPU usually
             // has more memory to work with, so try again there before giving up.
-            ConsoleUi.Warning("The model couldn't be loaded on the GPU; retrying on the CPU (slower).");
+            status.Warning("The model couldn't be loaded on the GPU; retrying on the CPU (slower).");
             gpuDetector = new GpuDeviceDetector();
             try
             {

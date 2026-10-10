@@ -1,25 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <AssemblyName>VideoTranscriber</AssemblyName>
-    <RootNamespace>VideoTranscriber</RootNamespace>
-    <Version>1.0.0</Version>
-    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
-    <Product>VideoTranscriber</Product>
-    <Description>Generate transcripts and subtitles from video files, offline, with Whisper.</Description>
-    <Copyright>Copyright (c) 2026 Ixfolia</Copyright>
-    <InvariantGlobalization>true</InvariantGlobalization>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <!-- Keep the exe's own folder clean; native whisper libraries are probed from runtimes/ below the app base directory. -->
-    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-  </PropertyGroup>
-
+<Project>
   <!--
-    Self-contained single-file publishing (see README "Building from source" for the exact command).
+    Packaging shared by the two executables (the desktop app and the command-line app): the native Whisper
+    runtimes, the optional Visual C++ runtime, and self-contained single-file publishing.
 
     Whisper.net ships its native libraries as content files under runtimes/<variant>/<rid>/ and probes them
     relative to the application base directory. IncludeAllContentForSelfExtract bundles them into the exe and
@@ -34,13 +16,9 @@
   <!-- CUDA runtimes are large (~150 MB each), so they are opt-in: pass -p:IncludeCuda=true to dotnet publish -->
   <PropertyGroup>
     <IncludeCuda Condition="'$(IncludeCuda)' == ''">false</IncludeCuda>
-    <WhisperNetVersion>1.9.1</WhisperNetVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FFMpegCore" Version="5.5.0" />
-    <PackageReference Include="System.CommandLine" Version="2.0.12" />
-    <PackageReference Include="Whisper.net" Version="$(WhisperNetVersion)" />
     <!-- CPU runtime (AVX2) plus a fallback for older CPUs without AVX. -->
     <PackageReference Include="Whisper.net.Runtime" Version="$(WhisperNetVersion)" />
     <PackageReference Include="Whisper.net.Runtime.NoAvx" Version="$(WhisperNetVersion)" />
@@ -56,14 +34,10 @@
   <!--
     Optional app-local Visual C++ runtime (msvcp140.dll, vcruntime140.dll, vcruntime140_1.dll), needed by the
     native whisper libraries on PCs without the VC++ Redistributable. The release workflow copies them into
-    vcredist/ before publishing; locally the folder is usually empty and the system copy is used.
+    src/vcredist/ before publishing; locally the folder is usually empty and the system copy is used.
   -->
   <ItemGroup>
-    <None Include="vcredist\*.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Link="vcredist\%(Filename)%(Extension)" Visible="false" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <InternalsVisibleTo Include="VideoTranscriber.Tests" />
+    <None Include="$(MSBuildThisFileDirectory)vcredist\*.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" Link="vcredist\%(Filename)%(Extension)" Visible="false" />
   </ItemGroup>
 
   <!--
@@ -77,5 +51,4 @@
       <ResolvedFileToPublish Remove="@(_ForeignWhisperRuntime)" />
     </ItemGroup>
   </Target>
-
 </Project>

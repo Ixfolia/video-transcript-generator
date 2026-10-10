@@ -8,7 +8,7 @@ namespace VideoTranscriber.Infrastructure;
 /// <see cref="ConsoleUi"/> while a bar is active appear above it. When output is redirected to a file, it prints a
 /// line every 10% instead of redrawing.
 /// </summary>
-public sealed class ProgressBar : IDisposable
+public sealed class ProgressBar : IProgressReporter
 {
     private const int MinRedrawIntervalMs = 100;
 

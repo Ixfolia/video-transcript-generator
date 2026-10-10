@@ -12,11 +12,13 @@ public sealed class ModelManager
 
     private readonly string cacheDirectory;
     private readonly FileDownloader downloader;
+    private readonly IStatusReporter status;
 
-    public ModelManager(string cacheDirectory, FileDownloader downloader)
+    public ModelManager(string cacheDirectory, FileDownloader downloader, IStatusReporter status)
     {
         this.cacheDirectory = cacheDirectory;
         this.downloader = downloader;
+        this.status = status;
     }
 
     public string CacheDirectory => cacheDirectory;
@@ -34,12 +36,12 @@ public sealed class ModelManager
 
         if (File.Exists(path))
         {
-            ConsoleUi.Warning($"The cached model at {path} is damaged and will be downloaded again.");
+            status.Warning($"The cached model at {path} is damaged and will be downloaded again.");
             File.Delete(path);
         }
 
-        ConsoleUi.Step($"Downloading the '{model.Name}' Whisper model (~{FileDownloader.FormatSize(model.ApproximateBytes)}). This only happens once.");
-        ConsoleUi.Dim($"Saving to {path}");
+        status.Step($"Downloading the '{model.Name}' Whisper model (~{FileDownloader.FormatSize(model.ApproximateBytes)}). This only happens once.");
+        status.Detail($"Saving to {path}");
 
         Exception? lastError = null;
         foreach (Uri url in model.DownloadUrls)
@@ -58,7 +60,7 @@ public sealed class ModelManager
             catch (Exception ex) when (ex is HttpRequestException or TimeoutException or InvalidDataException)
             {
                 lastError = ex;
-                ConsoleUi.Warning($"Download from {url.Host} failed: {ex.Message}");
+                status.Warning($"Download from {url.Host} failed: {ex.Message}");
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
