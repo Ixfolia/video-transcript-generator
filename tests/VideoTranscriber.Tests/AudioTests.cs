@@ -7,13 +7,14 @@ namespace VideoTranscriber.Tests;
 public class WavReaderTests
 {
     /// <summary>Builds a 16-bit PCM WAV file in memory, optionally with an extra chunk before the data.</summary>
-    internal static MemoryStream CreateWav(short[] samples, int sampleRate = 16_000, int channels = 1, bool withListChunk = false, ushort bitsPerSample = 16)
+    internal static MemoryStream CreateWav(short[] samples, int sampleRate = 16_000, int channels = 1, bool withListChunk = false,
+        ushort bitsPerSample = 16, string riffId = "RIFF", uint? dataSizeOverride = null)
     {
         var stream = new MemoryStream();
         var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
         byte[] list = Encoding.ASCII.GetBytes("INFOISFT\u0005\0\0\0Lavf\0\0"); // odd payload to exercise padding
 
-        writer.Write("RIFF"u8);
+        writer.Write(Encoding.ASCII.GetBytes(riffId));
         writer.Write(0); // size patched below
         writer.Write("WAVE"u8);
 
@@ -34,8 +35,15 @@ public class WavReaderTests
             writer.Write((byte)0); // pad byte
         }
 
+        if (riffId == "RF64")
+        {
+            writer.Write("ds64"u8);
+            writer.Write(28);
+            writer.Write(new byte[28]);
+        }
+
         writer.Write("data"u8);
-        writer.Write(samples.Length * 2);
+        writer.Write(dataSizeOverride ?? (uint)(samples.Length * 2));
         foreach (short sample in samples)
         {
             writer.Write(sample);
@@ -106,6 +114,27 @@ public class WavReaderTests
         Assert.Equal(2, reader.Read(samples));
         Assert.Equal(2000 / 32768f, samples[0]);
         Assert.Equal(-3000 / 32768f, samples[1]);
+    }
+
+    [Theory]
+    [InlineData(0u)]
+    [InlineData(0xFFFFFFFFu)]
+    public void PlaceholderDataSizeMeansReadToEndOfFile(uint placeholder)
+    {
+        using var reader = WavReader.Open(CreateWav([1, 2, 3, 4, 5], dataSizeOverride: placeholder));
+
+        Assert.Equal(5, reader.SampleCount);
+        Assert.Equal(5, reader.Read(new float[10]));
+    }
+
+    [Fact]
+    public void ReadsRf64Files()
+    {
+        using var reader = WavReader.Open(CreateWav([10, 20, 30], riffId: "RF64", dataSizeOverride: 0xFFFFFFFF));
+
+        float[] samples = new float[3];
+        Assert.Equal(3, reader.Read(samples));
+        Assert.Equal(30 / 32768f, samples[2]);
     }
 
     [Fact]

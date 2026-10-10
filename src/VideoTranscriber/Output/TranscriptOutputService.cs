@@ -14,18 +14,21 @@ public sealed class TranscriptOutputService
     public static ITranscriptWriter GetWriter(OutputFormat format) => Writers[format];
 
     /// <summary>Returns the output path for <paramref name="format"/>, e.g. <c>C:\videos\talk.srt</c>.</summary>
-    public static string GetOutputPath(string inputFile, string outputDirectory, OutputFormat format) =>
-        Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(inputFile) + GetWriter(format).Extension);
+    public static string GetOutputPath(string outputDirectory, string baseName, OutputFormat format) =>
+        Path.Combine(outputDirectory, baseName + GetWriter(format).Extension);
 
-    /// <summary>Writes every requested format and returns the created file paths.</summary>
-    public IReadOnlyList<string> WriteAll(Transcript transcript, string outputDirectory, IEnumerable<OutputFormat> formats)
+    /// <summary>
+    /// Writes every requested format as <c>&lt;baseName&gt;.&lt;ext&gt;</c> (see <see cref="OutputNaming"/>) and
+    /// returns the created file paths.
+    /// </summary>
+    public IReadOnlyList<string> WriteAll(Transcript transcript, string outputDirectory, string baseName, IEnumerable<OutputFormat> formats)
     {
         Directory.CreateDirectory(outputDirectory);
 
         var written = new List<string>();
         foreach (OutputFormat format in formats)
         {
-            string path = GetOutputPath(transcript.SourceFile, outputDirectory, format);
+            string path = GetOutputPath(outputDirectory, baseName, format);
 
             // Write to a temporary file first so an interrupted run never leaves a half-written transcript behind.
             string tempPath = path + ".tmp";

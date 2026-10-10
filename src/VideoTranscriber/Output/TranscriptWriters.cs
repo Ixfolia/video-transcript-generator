@@ -79,8 +79,7 @@ public sealed class VttWriter : ITranscriptWriter
         writer.Write("WEBVTT\n");
         foreach (TranscriptSegment segment in transcript.Segments)
         {
-            // "-->" is the cue timing separator and must not appear in cue text.
-            string text = CueText.MultiLine(segment.Text).Replace("-->", "->", StringComparison.Ordinal);
+            string text = EscapeCueText(CueText.MultiLine(segment.Text));
             if (text.Length == 0)
             {
                 continue;
@@ -92,6 +91,15 @@ public sealed class VttWriter : ITranscriptWriter
             writer.Write('\n');
         }
     }
+
+    /// <summary>
+    /// In WebVTT cue text "&amp;" starts an escape and "&lt;" starts a tag, so both must be escaped (and "&gt;" too,
+    /// which also keeps the "-->" timing separator out of the text).
+    /// </summary>
+    internal static string EscapeCueText(string text) =>
+        text.Replace("&", "&amp;", StringComparison.Ordinal)
+            .Replace("<", "&lt;", StringComparison.Ordinal)
+            .Replace(">", "&gt;", StringComparison.Ordinal);
 }
 
 /// <summary>JSON with metadata and timed segments.</summary>

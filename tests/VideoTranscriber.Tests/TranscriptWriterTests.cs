@@ -87,15 +87,25 @@ public class TranscriptWriterTests
     }
 
     [Fact]
-    public void Vtt_EscapesCueTimingArrowInText()
+    public void Vtt_EscapesMarkupCharactersAndTimingArrowInText()
     {
         Transcript transcript = CreateTranscript(
-            new TranscriptSegment(TimeSpan.Zero, TimeSpan.FromSeconds(1), "a --> b"));
+            new TranscriptSegment(TimeSpan.Zero, TimeSpan.FromSeconds(1), "AT&T says a --> b and x < y"));
 
         string vtt = Render(new VttWriter(), transcript);
 
-        Assert.Contains("\na -> b\n", vtt);
+        Assert.Contains("\nAT&amp;T says a --&gt; b and x &lt; y\n", vtt);
         Assert.Single(vtt.Split('\n'), line => line.Contains("-->", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void SrtAndTxtKeepTextUnescaped()
+    {
+        Transcript transcript = CreateTranscript(
+            new TranscriptSegment(TimeSpan.Zero, TimeSpan.FromSeconds(1), "AT&T <3"));
+
+        Assert.Contains("\nAT&T <3\n", Render(new SrtWriter(), transcript));
+        Assert.Equal("AT&T <3\n", Render(new TextTranscriptWriter(), transcript));
     }
 
     [Fact]

@@ -26,14 +26,14 @@ public sealed partial class Transcriber : IDisposable
     private static readonly TimeSpan CutSearchWindow = TimeSpan.FromSeconds(20);
 
     private readonly WhisperFactory factory;
-    private readonly bool gpuRuntimeWithoutDevice;
+    private readonly string? cpuFallbackReason;
 
-    private Transcriber(WhisperFactory factory, RuntimeLibrary? runtime, string? gpuDevice, bool gpuRuntimeWithoutDevice)
+    private Transcriber(WhisperFactory factory, RuntimeLibrary? runtime, string? gpuDevice, string? cpuFallbackReason)
     {
         this.factory = factory;
         Runtime = runtime;
         GpuDevice = gpuDevice;
-        this.gpuRuntimeWithoutDevice = gpuRuntimeWithoutDevice;
+        this.cpuFallbackReason = cpuFallbackReason;
     }
 
     /// <summary>The native runtime that was loaded (CUDA, Vulkan, CPU...).</summary>
@@ -43,7 +43,7 @@ public sealed partial class Transcriber : IDisposable
     public string? GpuDevice { get; }
 
     public string RuntimeDescription =>
-        gpuRuntimeWithoutDevice ? "CPU (no compatible GPU found)"
+        cpuFallbackReason is not null ? $"CPU ({cpuFallbackReason})"
         : GpuDevice is null ? NativeRuntime.Describe(Runtime)
         : $"{NativeRuntime.Describe(Runtime)}: {GpuDevice}";
 
@@ -68,33 +68,44 @@ public sealed partial class Transcriber : IDisposable
         });
 
         WhisperFactory factory;
+        string? cpuFallbackReason = null;
         try
         {
-            factory = WhisperFactory.FromPath(modelPath, new WhisperFactoryOptions { UseGpu = !cpuOnly });
+            factory = CreateFactory(modelPath, useGpu: !cpuOnly);
+        }
+        catch (WhisperModelLoadException) when (!cpuOnly)
+        {
+            // Most often the GPU ran out of memory (e.g. the medium model on a small graphics card). The CPU usually
+            // has more memory to work with, so try again there before giving up.
+            ConsoleUi.Warning("The model couldn't be loaded on the GPU; retrying on the CPU (slower).");
+            gpuDetector = new GpuDeviceDetector();
+            try
+            {
+                factory = CreateFactory(modelPath, useGpu: false);
+                cpuFallbackReason = "the model didn't fit on the GPU";
+            }
+            catch (WhisperModelLoadException ex)
+            {
+                throw ModelLoadFailure(modelPath, ex);
+            }
         }
         catch (WhisperModelLoadException ex)
         {
-            throw ModelDamaged(modelPath, ex);
+            throw ModelLoadFailure(modelPath, ex);
         }
         catch (Exception ex) when (IsNativeLoadFailure(ex))
         {
             throw NativeLoadFailure(ex);
         }
 
-        try
-        {
-            // Building a processor forces the model to be loaded now, so problems surface here with a clear message.
-            using WhisperProcessor probe = factory.CreateBuilder().Build();
-        }
-        catch (WhisperModelLoadException ex)
-        {
-            factory.Dispose();
-            throw ModelDamaged(modelPath, ex);
-        }
-
         RuntimeLibrary? runtime = RuntimeOptions.LoadedLibrary;
         bool gpuRuntime = runtime is RuntimeLibrary.Cuda or RuntimeLibrary.Cuda12 or RuntimeLibrary.Vulkan;
-        return new Transcriber(factory, runtime, gpuDetector.Device, gpuRuntime && gpuDetector.ModelBuffer is not null && !gpuDetector.ModelOnGpu);
+        if (cpuFallbackReason is null && gpuRuntime && gpuDetector.ModelBuffer is not null && !gpuDetector.ModelOnGpu)
+        {
+            cpuFallbackReason = "no compatible GPU found";
+        }
+
+        return new Transcriber(factory, runtime, gpuDetector.Device, cpuFallbackReason);
     }
 
     /// <summary>Language codes Whisper understands (e.g. "en", "de", "ja").</summary>
@@ -147,13 +158,14 @@ public sealed partial class Transcriber : IDisposable
 
             await foreach (SegmentData data in processor.ProcessAsync(chunk.Samples, cancellationToken))
             {
-                language ??= string.IsNullOrEmpty(data.Language) ? null : data.Language;
-
                 string text = data.Text.Trim();
                 if (IsNonSpeech(text))
                 {
                     continue;
                 }
+
+                // Only trust the detected language once there is real speech; silence or music detects poorly.
+                language ??= string.IsNullOrEmpty(data.Language) ? null : data.Language;
 
                 TimeSpan start = Clamp(offset + data.Start, offset, chunkEnd);
                 TimeSpan end = Clamp(offset + data.End, start, chunkEnd);
@@ -188,14 +200,30 @@ public sealed partial class Transcriber : IDisposable
     private static bool IsNonSpeech(string text) =>
         text.Length == 0 || text.Equals("[BLANK_AUDIO]", StringComparison.OrdinalIgnoreCase);
 
-    private static UserFacingException ModelDamaged(string modelPath, Exception ex)
+    /// <summary>Creates the factory and forces the model to load, so failures surface here.</summary>
+    private static WhisperFactory CreateFactory(string modelPath, bool useGpu)
     {
-        TryDelete(modelPath);
-        return new UserFacingException(
-            $"The Whisper model file could not be loaded and appears to be damaged: {modelPath}",
-            "It has been deleted. Run VideoTranscriber again to download a fresh copy.",
-            ex);
+        WhisperFactory factory = WhisperFactory.FromPath(modelPath, new WhisperFactoryOptions { UseGpu = useGpu });
+        try
+        {
+            // Building a processor loads the model now rather than on first use.
+            using WhisperProcessor probe = factory.CreateBuilder().Build();
+            return factory;
+        }
+        catch
+        {
+            factory.Dispose();
+            throw;
+        }
     }
+
+    private static UserFacingException ModelLoadFailure(string modelPath, Exception ex) =>
+        // The file already passed the format check, so don't delete it: the usual cause is too little memory.
+        new(
+            $"The Whisper model couldn't be loaded: {modelPath}",
+            "Your PC may not have enough free memory for this model. Close other programs or try a smaller --model. "
+            + "If the problem persists, the file may be damaged: delete it and run VideoTranscriber again to download a fresh copy.",
+            ex);
 
     private static bool IsNativeLoadFailure(Exception ex) =>
         ex is DllNotFoundException or BadImageFormatException or PlatformNotSupportedException or FileNotFoundException
@@ -209,20 +237,6 @@ public sealed partial class Transcriber : IDisposable
               + "The speech engine officially supports 64-bit Windows 11 and Windows Server 2022 or newer. Run with --cpu to rule out GPU driver problems."
             : "Make sure libstdc++ and glibc 2.31+ are installed. Run with --cpu to rule out GPU driver problems.";
         return new UserFacingException($"Couldn't load the speech recognition engine: {ex.Message}", hint, ex);
-    }
-
-    private static void TryDelete(string path)
-    {
-        try
-        {
-            File.Delete(path);
-        }
-        catch (IOException)
-        {
-        }
-        catch (UnauthorizedAccessException)
-        {
-        }
     }
 
     /// <summary>

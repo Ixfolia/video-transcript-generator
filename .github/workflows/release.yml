@@ -77,6 +77,10 @@ jobs:
       - name: Smoke test
         run: ./build/smoke-test.ps1 -Exe dist/VideoTranscriber.exe
 
+      # The runner has no NVIDIA GPU, so this exercises the CUDA build's fallback to CPU.
+      - name: Smoke test (CUDA build)
+        run: ./build/smoke-test.ps1 -Exe dist/VideoTranscriber-CUDA.exe
+
       - uses: actions/upload-artifact@v4
         with:
           name: VideoTranscriber-${{ steps.version.outputs.value }}

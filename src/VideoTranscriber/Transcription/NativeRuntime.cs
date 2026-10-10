@@ -66,7 +66,9 @@ internal static class NativeRuntime
     /// </summary>
     private static void PreloadVisualCppRuntime()
     {
-        if (VisualCppRuntimeDlls.All(dll => NativeLibrary.TryLoad(dll, out _)))
+        // Check without loading anything: if only some of the DLLs are installed (e.g. an old 2015 redistributable
+        // without vcruntime140_1.dll), use the bundled set as a whole rather than mixing versions.
+        if (VisualCppRuntimeDlls.All(dll => File.Exists(Path.Combine(Environment.SystemDirectory, dll))))
         {
             return;
         }

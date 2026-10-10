@@ -95,7 +95,11 @@ public sealed class WavReader : IDisposable
     private static WavReader Parse(Stream stream)
     {
         Span<byte> header = stackalloc byte[12];
-        if (ReadFully(stream, header) < 12 || !header[..4].SequenceEqual("RIFF"u8) || !header[8..12].SequenceEqual("WAVE"u8))
+        // RF64 is the 64-bit variant FFmpeg can write for files over 4 GB; its sizes live in a "ds64" chunk (skipped
+        // below) and the data chunk size is 0xFFFFFFFF, which is handled as "until end of file".
+        if (ReadFully(stream, header) < 12
+            || !(header[..4].SequenceEqual("RIFF"u8) || header[..4].SequenceEqual("RF64"u8))
+            || !header[8..12].SequenceEqual("WAVE"u8))
         {
             throw new InvalidDataException("Not a WAV file (missing RIFF/WAVE header).");
         }
@@ -139,12 +143,13 @@ public sealed class WavReader : IDisposable
                     throw new InvalidDataException("WAV data chunk appears before the format chunk.");
                 }
 
-                // Streaming writers may leave the size as 0 or 0xFFFFFFFF; fall back to "until end of file".
+                // Streaming writers may leave the size as 0 or 0xFFFFFFFF, and the 32-bit size field overflows for
+                // audio over 4 GB (~37 hours at 16 kHz). In those cases read until the end of the file.
                 long dataBytes = chunkSize;
                 if (stream.CanSeek)
                 {
                     long available = stream.Length - stream.Position;
-                    if (chunkSize == 0 || chunkSize == uint.MaxValue || dataBytes > available)
+                    if (chunkSize == 0 || chunkSize == uint.MaxValue || dataBytes > available || available > uint.MaxValue)
                     {
                         dataBytes = available;
                     }

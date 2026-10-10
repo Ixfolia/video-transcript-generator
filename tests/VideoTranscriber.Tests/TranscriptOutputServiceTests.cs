@@ -21,7 +21,7 @@ public sealed class TranscriptOutputServiceTests : IDisposable
     [InlineData(OutputFormat.Json, "my talk.json")]
     public void OutputFileIsNamedAfterTheVideo(OutputFormat format, string expectedName)
     {
-        string path = TranscriptOutputService.GetOutputPath(Path.Combine("in", "my talk.mp4"), "out", format);
+        string path = TranscriptOutputService.GetOutputPath("out", "my talk", format);
 
         Assert.Equal(Path.Combine("out", expectedName), path);
     }
@@ -38,7 +38,7 @@ public sealed class TranscriptOutputServiceTests : IDisposable
             Segments: [new TranscriptSegment(TimeSpan.Zero, TimeSpan.FromSeconds(2), "Schöne Grüße")]);
 
         IReadOnlyList<string> written = new TranscriptOutputService()
-            .WriteAll(transcript, directory, [OutputFormat.Txt, OutputFormat.Srt, OutputFormat.Vtt, OutputFormat.Json]);
+            .WriteAll(transcript, directory, "clip", [OutputFormat.Txt, OutputFormat.Srt, OutputFormat.Vtt, OutputFormat.Json]);
 
         Assert.Equal(
             new[] { "clip.txt", "clip.srt", "clip.vtt", "clip.json" },
@@ -60,7 +60,7 @@ public sealed class TranscriptOutputServiceTests : IDisposable
 
         var transcript = new Transcript("clip.mp4", "tiny", "en", false, TimeSpan.FromSeconds(1),
             [new TranscriptSegment(TimeSpan.Zero, TimeSpan.FromSeconds(1), "new")]);
-        new TranscriptOutputService().WriteAll(transcript, directory, [OutputFormat.Txt]);
+        new TranscriptOutputService().WriteAll(transcript, directory, "clip", [OutputFormat.Txt]);
 
         Assert.Equal("new\n", File.ReadAllText(existing));
     }

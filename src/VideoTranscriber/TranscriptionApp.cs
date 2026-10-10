@@ -40,7 +40,8 @@ public sealed class TranscriptionApp
             ConsoleUi.Info($"VideoTranscriber {Version}");
             DeleteStaleTempFiles();
 
-            List<InputFile> inputs = ValidateInputs(options.InputFiles);
+            (List<InputFile> inputs, int rejected) = ValidateInputs(options.InputFiles);
+            int fileCount = inputs.Count + rejected;
             if (inputs.Count == 0)
             {
                 return ExitFailure;
@@ -56,13 +57,15 @@ public sealed class TranscriptionApp
                 return ExitFailure;
             }
 
+            probed = AssignOutputNames(probed, options.OutputDirectory);
+
             var modelManager = new ModelManager(AppPaths.ModelDirectory, downloader);
             string modelPath = await modelManager.EnsureModelAsync(options.Model, cancellationToken);
 
             using Transcriber transcriber = LoadTranscriber(options, modelPath);
             string language = ValidateLanguage(options.Language);
 
-            int failures = options.InputFiles.Count - probed.Count;
+            int failures = fileCount - probed.Count;
             foreach ((InputFile input, MediaInfo media) in probed)
             {
                 try
@@ -80,7 +83,7 @@ public sealed class TranscriptionApp
             ConsoleUi.Info(string.Empty);
             if (failures > 0)
             {
-                ConsoleUi.Warning($"Finished in {FormatElapsed(total.Elapsed)}; {failures} of {options.InputFiles.Count} files failed.");
+                ConsoleUi.Warning($"Finished in {FormatElapsed(total.Elapsed)}; {failures} of {fileCount} files failed.");
                 return ExitFailure;
             }
 
@@ -110,9 +113,12 @@ public sealed class TranscriptionApp
         }
     }
 
-    private static List<InputFile> ValidateInputs(IReadOnlyList<string> paths)
+    /// <summary>Returns the usable, de-duplicated input files and how many paths were rejected.</summary>
+    private static (List<InputFile> Inputs, int Rejected) ValidateInputs(IReadOnlyList<string> paths)
     {
         var inputs = new List<InputFile>();
+        int rejected = 0;
+        var seen = new HashSet<string>(OperatingSystem.IsLinux() ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase);
         foreach (string rawPath in paths)
         {
             string path = rawPath.Trim().Trim('"');
@@ -124,24 +130,31 @@ public sealed class TranscriptionApp
             catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
             {
                 ConsoleUi.Error($"'{rawPath}' is not a valid file path.");
+                rejected++;
                 continue;
             }
 
             if (Directory.Exists(fullPath))
             {
                 ConsoleUi.Error($"'{fullPath}' is a folder. Pass a video file instead.");
+                rejected++;
             }
             else if (!File.Exists(fullPath))
             {
                 ConsoleUi.Error($"File not found: {fullPath}", "Check the spelling, and put the path in quotes if it contains spaces.");
+                rejected++;
             }
-            else
+            else if (seen.Add(fullPath))
             {
                 inputs.Add(new InputFile(fullPath));
             }
+            else
+            {
+                ConsoleUi.Dim($"Skipping {Path.GetFileName(fullPath)}: it was given more than once.");
+            }
         }
 
-        return inputs;
+        return (inputs, rejected);
     }
 
     private static async Task<List<(InputFile, MediaInfo)>> ProbeInputsAsync(AudioExtractor extractor, List<InputFile> inputs, CancellationToken cancellationToken)
@@ -201,13 +214,19 @@ public sealed class TranscriptionApp
         Transcriber transcriber,
         CancellationToken cancellationToken)
     {
-        string outputDirectory = ResolveOutputDirectory(options.OutputDirectory, input.FullPath);
+        string outputDirectory = input.OutputDirectory;
+        EnsureWritable(outputDirectory);
 
         ConsoleUi.Info(string.Empty);
         ConsoleUi.Step($"{input.FileName}  ({FormatDuration(media.Duration)}{(media.AudioCodec is null ? string.Empty : ", " + media.AudioCodec + " audio")})");
         if (media.AudioStreamCount > 1)
         {
             ConsoleUi.Dim($"The file has {media.AudioStreamCount} audio tracks; using the first one.");
+        }
+
+        if (input.OutputBaseName != Path.GetFileNameWithoutExtension(input.FullPath))
+        {
+            ConsoleUi.Dim($"Another input has the same name, so this one is saved as '{input.OutputBaseName}.*'.");
         }
 
         string wavPath = Path.Combine(Path.GetTempPath(), $"{TempFilePrefix}{Guid.NewGuid():N}.wav");
@@ -253,7 +272,7 @@ public sealed class TranscriptionApp
                 Duration: media.Duration,
                 Segments: result.Segments);
 
-            IReadOnlyList<string> written = WriteOutputs(transcript, outputDirectory, options.Formats);
+            IReadOnlyList<string> written = WriteOutputs(transcript, outputDirectory, input.OutputBaseName, options.Formats);
             ConsoleUi.Success("Saved:");
             foreach (string path in written)
             {
@@ -266,11 +285,11 @@ public sealed class TranscriptionApp
         }
     }
 
-    private static IReadOnlyList<string> WriteOutputs(Transcript transcript, string outputDirectory, IReadOnlyList<OutputFormat> formats)
+    private static IReadOnlyList<string> WriteOutputs(Transcript transcript, string outputDirectory, string baseName, IReadOnlyList<OutputFormat> formats)
     {
         try
         {
-            return new TranscriptOutputService().WriteAll(transcript, outputDirectory, formats);
+            return new TranscriptOutputService().WriteAll(transcript, outputDirectory, baseName, formats);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -281,13 +300,37 @@ public sealed class TranscriptionApp
         }
     }
 
-    private static string ResolveOutputDirectory(string? requested, string inputPath)
+    private static List<(InputFile, MediaInfo)> AssignOutputNames(List<(InputFile Input, MediaInfo Media)> files, string? requestedOutput)
     {
-        string directory = string.IsNullOrWhiteSpace(requested)
-            ? Path.GetDirectoryName(inputPath)!
-            : Path.GetFullPath(requested.Trim().Trim('"'));
+        string[] directories = files.Select(f => GetOutputDirectory(requestedOutput, f.Input.FullPath)).ToArray();
+        IReadOnlyList<string> baseNames = OutputNaming.AssignBaseNames(
+            files.Select((f, i) => (f.Input.FullPath, directories[i])).ToList());
 
-        // Fail before spending minutes transcribing if the folder can't be written.
+        return files
+            .Select((f, i) => (f.Input with { OutputDirectory = directories[i], OutputBaseName = baseNames[i] }, f.Media))
+            .ToList();
+    }
+
+    private static string GetOutputDirectory(string? requested, string inputPath)
+    {
+        if (string.IsNullOrWhiteSpace(requested))
+        {
+            return Path.GetDirectoryName(inputPath)!;
+        }
+
+        try
+        {
+            return Path.GetFullPath(requested.Trim().Trim('"'));
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            throw new UserFacingException($"'{requested}' is not a valid output folder.", innerException: ex);
+        }
+    }
+
+    /// <summary>Fails before spending minutes transcribing if the output folder can't be written.</summary>
+    private static void EnsureWritable(string directory)
+    {
         try
         {
             Directory.CreateDirectory(directory);
@@ -302,8 +345,6 @@ public sealed class TranscriptionApp
                 "Use --output to choose a folder you can write to.",
                 ex);
         }
-
-        return directory;
     }
 
     /// <summary>
@@ -354,5 +395,9 @@ public sealed class TranscriptionApp
     private sealed record InputFile(string FullPath)
     {
         public string FileName => Path.GetFileName(FullPath);
+
+        public string OutputDirectory { get; init; } = Path.GetDirectoryName(FullPath)!;
+
+        public string OutputBaseName { get; init; } = Path.GetFileNameWithoutExtension(FullPath);
     }
 }

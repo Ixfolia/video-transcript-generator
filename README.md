@@ -85,7 +85,7 @@ Transcribing     [#########---------------------]  31%  03:54 / 12:34
 | `--help` | `-h`, `-?` | | Show help. |
 | `--version` | | | Show the version number. |
 
-Existing transcript files with the same name are overwritten.
+Existing transcript files with the same name are overwritten. If two videos in one run would produce the same file name (for example `talk.mp4` and `talk.mkv`), the video's extension is kept in the name (`talk.mp4.srt`, `talk.mkv.srt`) so neither overwrites the other.
 
 Exit codes: `0` success, `1` error, `2` invalid command line, `130` cancelled with Ctrl+C.
 

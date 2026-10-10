@@ -60,7 +60,7 @@ public sealed class ModelManager
                 lastError = ex;
                 ConsoleUi.Warning($"Download from {url.Host} failed: {ex.Message}");
             }
-            catch (IOException ex)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 throw new UserFacingException(
                     $"Couldn't save the model to {path}: {ex.Message}",
@@ -118,11 +118,12 @@ public sealed class ModelManager
             error);
     }
 
+    /// <summary>True when the server couldn't be reached at all (as opposed to a failure partway through).</summary>
     private static bool IsNoNetwork(Exception? error) => error switch
     {
-        HttpRequestException { StatusCode: null, InnerException: SocketException or IOException or HttpRequestException } => true,
         HttpRequestException { HttpRequestError: HttpRequestError.NameResolutionError or HttpRequestError.ConnectionError or HttpRequestError.ProxyTunnelError } => true,
         HttpRequestException { StatusCode: HttpStatusCode.ProxyAuthenticationRequired } => true,
+        HttpRequestException { HttpRequestError: HttpRequestError.Unknown, StatusCode: null, InnerException: SocketException } => true,
         _ => false,
     };
 }

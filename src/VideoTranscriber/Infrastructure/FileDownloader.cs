@@ -37,17 +37,30 @@ public sealed class FileDownloader
 
     /// <summary>
     /// Downloads <paramref name="url"/> to <paramref name="destinationPath"/>. The destination only appears once the
-    /// download has completed. Network failures surface as <see cref="HttpRequestException"/> or
-    /// <see cref="TimeoutException"/>.
+    /// download has completed. Network failures (including a connection that drops mid-download) surface as
+    /// <see cref="HttpRequestException"/> or <see cref="TimeoutException"/>; <see cref="IOException"/> and
+    /// <see cref="UnauthorizedAccessException"/> mean the file couldn't be written locally.
     /// </summary>
     public async Task DownloadAsync(Uri url, string destinationPath, string label, CancellationToken cancellationToken)
     {
-        string partialPath = destinationPath + ".part";
+        // Unique per run, so two instances downloading the same file at once don't collide.
+        string partialPath = $"{destinationPath}.{Guid.NewGuid():N}.part";
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(destinationPath))!);
 
         try
         {
-            using HttpResponseMessage response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            HttpResponseMessage response;
+            try
+            {
+                response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            }
+            catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                // SocketsHttpHandler reports ConnectTimeout as a cancellation, not as an HttpRequestException.
+                throw new TimeoutException($"Timed out connecting to {url.Host}.", ex);
+            }
+
+            using HttpResponseMessage disposeResponse = response;
             response.EnsureSuccessStatusCode();
 
             long? totalBytes = response.Content.Headers.ContentLength;
@@ -72,6 +85,11 @@ public sealed class FileDownloader
                         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                         {
                             throw new TimeoutException($"The download stalled (no data received for {StallTimeout.TotalSeconds:0} seconds).");
+                        }
+                        catch (IOException ex)
+                        {
+                            // HttpIOException derives from IOException; report it as a network problem, not a disk one.
+                            throw new HttpRequestException(HttpRequestError.ResponseEnded, $"The download was interrupted: {ex.Message}", ex);
                         }
                     }
 

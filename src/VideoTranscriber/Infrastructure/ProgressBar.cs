@@ -122,7 +122,7 @@ public sealed class ProgressBar : IDisposable
             if (decile > lastLoggedDecile)
             {
                 lastLoggedDecile = decile;
-                Console.Out.WriteLine(string.Create(CultureInfo.InvariantCulture, $"{label}: {percent}% {detail}").TrimEnd());
+                Console.Out.WriteLine(string.Create(CultureInfo.InvariantCulture, $"{label.TrimEnd()}: {percent}% {detail}").TrimEnd());
             }
 
             return;
