@@ -3,6 +3,8 @@
   <!-- Everything except the user interface: FFmpeg, model management, Whisper transcription and the output writers. -->
   <PropertyGroup>
     <RootNamespace>VideoTranscriber</RootNamespace>
+    <!-- A library: only the apps are published (this lets "dotnet publish" run from the repository root). -->
+    <IsPublishable>false</IsPublishable>
   </PropertyGroup>
 
   <ItemGroup>
